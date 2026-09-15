@@ -60,7 +60,7 @@ def testNetwork(device, statedict_path, testing_path, nplots):
         print(f"\rTesting network: {i+1}/{config.TESTING_NUM_BATCHES} ({100*(i+1)/config.TESTING_NUM_BATCHES:.1f}%)", end="", flush=True)
 
         # Makes a graph N_GRAPHS times
-        if(i % (config.TESTING_NUM_BATCHES // nplots) == 0):
+        if(nplots > 0 and i % (config.TESTING_NUM_BATCHES // nplots) == 0):
             # Choses which function to plot
             k = torch.randint(0, config.TESTING_BATCH_SIZE, (1,))
 

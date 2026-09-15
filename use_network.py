@@ -44,7 +44,7 @@ parser.add_argument(
 parser.add_argument(
     "-p", "--plot",
     type=int,
-    default=1,
+    default=0,
     help="How many testing result plots to generate. Only works when using --test."
 )
 
@@ -66,8 +66,8 @@ testing_path = args.test if istest else None
 # Updates paths based on arguments
 statedict_path = args.model
 
-if(args.plot < 1):
-    parser.error("Number of plot cannot be less than 1")
+if(args.plot < 0):
+    parser.error("Number of plot cannot be less than 0")
 
 
 # checks if the given model exists

@@ -1,5 +1,7 @@
 ### Network information
 
+# Network name
+NAME = "Cooper"
 # size of the set on which the network operates, which is [-A, A]
 A = 10  
 # Number of points on which the network operates
@@ -25,12 +27,11 @@ TRAINING_TYPE = "mixed"
 # Number of functions in a testing batch
 TESTING_BATCH_SIZE = 256
 # Number of batches used in testing
-TESTING_NUM_BATCHES = 400
-# testing batch type. alternatives are "poly", "smooth" or "well"
+TESTING_NUM_BATCHES = 200
+# testing batch type. alternatives are "poly", "smooth", "well" or "mixed"
 TESTING_TYPE = "mixed"
 # Wether to plot some of the graphs to compare teoric and model phi during testing
-PLOT_GRAPHS = True
-N_GRAPHS = 5 # number of graphs to plot
+
 # Wether to save testing results to a file
 SAVE_RESULTS = True 
 

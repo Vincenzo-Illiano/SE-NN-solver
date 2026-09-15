@@ -1,12 +1,8 @@
 import torch
-from network import config
 from network import network
-from network import helper
-from network import dataset
+from network import testing
 from network import training
 from pathlib import Path
-import matplotlib.pyplot as plt
-import numpy as np
 import argparse
 
 # Finds the root folder and checkpoint path 
@@ -48,7 +44,7 @@ parser.add_argument(
 parser.add_argument(
     "-p", "--plot",
     type=int,
-    default=0,
+    default=1,
     help="How many testing result plots to generate. Only works when using --test."
 )
 
@@ -69,6 +65,9 @@ testing_path = args.test if istest else None
 
 # Updates paths based on arguments
 statedict_path = args.model
+
+if(args.plot < 1):
+    parser.error("Number of plot cannot be less than 1")
 
 
 # checks if the given model exists
@@ -112,5 +111,6 @@ if(istrain):
     print("Training done successfully.")
 
 if(istest):
-    print("Network testing is currently work in progress...")
-    # Testes the network (WIP)
+    print("Testing network...")
+    testing.testNetwork(device, statedict_path, testing_path, args.plot)
+    

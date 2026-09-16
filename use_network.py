@@ -59,9 +59,9 @@ args = parser.parse_args()
 
 # Checks if the model will be trained / tested based on the arguments
 istrain = args.train is not None
-training_path = args.train if istrain else None
+training_path = args.train if istrain else training_path
 istest = args.test is not None
-testing_path = args.test if istest else None
+testing_path = args.test if istest else testing_path
 
 # Updates paths based on arguments
 statedict_path = args.model

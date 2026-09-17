@@ -224,7 +224,8 @@ def generate_testing_set( filename, device="cuda", type="mixed"):
     torch.save({
         "function": function_set,
         "phi": solved_set,
-        "E": energy_set
+        "E": energy_set,
+        "type": type
     }, filename)
     print("Testing set saved correctly")
 
@@ -306,22 +307,3 @@ def shuffleDataset(dataset):
     dataset = dataset.reshape(-1, N)
     dataset = dataset[torch.randperm(dataset.size(0))]
     dataset = dataset.reshape(NUM_BATCHES, BATCH_SIZE, N)
-
-# Only run this if you need to generate a new dataset with the same
-# sizes as the already existing one. Otherwise only running networkTraining
-# will be sufficient
-if __name__ == "__main__":
-
-    torch.backends.cuda.matmul.allow_tf32 = True
-
-    # Generates the training set
-    if input("Generate training set? (y/N)").lower() == "y":
-        type = input("Choose dataset type: (mixed/smooth/well/poly) ")
-        print("Generating training set:")
-        generate_training_set('trainingset.pt', device="cuda", type=type)
-        print()
-
-    # Generates the ground energy set
-    if input("Generate Energy set? (y/N)").lower() == "y":
-        print("Generating energy set:")
-        generate_energy_set( 'trainingset.pt', 'ground_energy_set.pt', n=0)

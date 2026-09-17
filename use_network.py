@@ -17,7 +17,8 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "-m", "--model",
-    help="Path of the model state dict. Default will be /data/checkpoint.pth",
+    help="Path of the model state dict. Default will be /data/checkpoint.pth. If there is no state dict you will be prompted to" \
+    "create a new network with parameters specified in config.py",
     default=statedict_path,
     type=str
 )

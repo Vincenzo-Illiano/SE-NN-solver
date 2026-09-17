@@ -34,8 +34,3 @@ TESTING_TYPE = "mixed"
 
 # Wether to save testing results to a file
 SAVE_RESULTS = True 
-
-# Note: if BATCH_SIZE or NUM_BATCHES does not match the data
-# saved in the file 'data/trainingset.pt', a new trainingset will
-# be automatically generated before training. This way only networktraining.py
-# will need to be run. This is the same for the testset.

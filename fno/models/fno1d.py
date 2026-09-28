@@ -1,18 +1,15 @@
 import torch
 import torch.nn as nn
-import network.helper as helper 
-import network.config as config
 
-# Does the fourier decomposition on the input, applies a FFNN,
-# then does the inverse fourier decomposition
-class FourierNet(nn.Module):
-    def __init__(self):
+# Class defining the 1d fourier
+class fno1d(nn.Module):
+    def __init__(self, modes, N, A):
         super().__init__()
 
-        # Imports information from the config file
-        self.modes = config.MODES
-        self.N = config.N
-        self.dt = 2*config.A / ( config.N - 1)
+        # Builds the class
+        self.modes = modes
+        self.N = N
+        self.dt = 2*A / ( N - 1)
 
         # Builds the network from the config file
         sizes = (

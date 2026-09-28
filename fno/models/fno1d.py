@@ -1,21 +1,30 @@
 import torch
 import torch.nn as nn
+from ..utils import helper
 
-# Class defining the 1d fourier
+# Class defining the 1d fourier operator. 
+# This requires a integer number of modes (number of frequencies on which the
+# network is going to decompose the input), N (number of points of the input),
+# A (size of the input set, by default A = 1, meaning the set will be [-1, 1]) and
+# hidden (list of integers defining the size of the hidden layers).
+# When running forward(), the model will return E (energy), phi (the wavefunction),
+# and Hphi (the hamiltonian applied to the wavefunction), as these may be all used in
+# training losses
 class fno1d(nn.Module):
-    def __init__(self, modes, N, A):
+    def __init__(self, modes, N, hidden, A=1):
         super().__init__()
 
         # Builds the class
         self.modes = modes
         self.N = N
         self.dt = 2*A / ( N - 1)
+        self.hidden = hidden
 
         # Builds the network from the config file
         sizes = (
-            [2*config.MODES]
-            + config.HIDDEN_LAYERS
-            + [2*config.MODES]
+            [2*modes]
+            + hidden
+            + [2*modes]
         )
         layers = []
         for in_features, out_features in zip(sizes[:-1], sizes[1:]):
@@ -27,12 +36,14 @@ class fno1d(nn.Module):
 
         self.net = nn.Sequential(*layers)
 
-        # Mask needed to impose phi = 0 at boundaries
+        # Mask needed to impose phi = 0 at boundaries.
+        # Using a discontinuous function in this case
         mask = torch.ones(self.N)
         mask[0]=0
         mask[-1]=0
         self.register_buffer("boundary_mask", mask)
 
+    # Forward function of the network
     def forward(self, x):
 
         # Real FFT of input
@@ -41,15 +52,15 @@ class fno1d(nn.Module):
         # takes the first modes
         low = F[:, :self.modes]
 
-        # Divides comples and real values
-        low_real = torch.view_as_real(low)      # (batch,M,2)
-        low_real = low_real.flatten(1)          # (batch,2M)
+        # Divides complex and real values
+        low_real = torch.view_as_real(low)      # (batch,modes,2)
+        low_real = low_real.flatten(1)          # (batch,2modes)
 
         # Neural network
         out = self.net(low_real)
 
-        # Goes back to comples mode
-        out = out.view(-1, self.modes, 2)
+        # Goes back to complex mode
+        out = out.view(-1, self.modes, 2)      # (batch, modes, 2)
         out = torch.view_as_complex(out)
 
         # Same shape as F needed to do inverse FFT
@@ -59,10 +70,10 @@ class fno1d(nn.Module):
         # inverse FFT
         phi = torch.fft.irfft(F_new, n=self.N)
 
-        # Imposes phi = 0 at boundaries
+        # Imposes phi = 0 at boundaries using the mask defined earlier
         phi = phi * self.boundary_mask
 
-        # Makes sure that the output function is normalized
+        # Normalizes the output function
         integral = torch.sqrt(self.dt * torch.sum(phi**2, dim=1, keepdim=True))
         phi = phi / integral
 

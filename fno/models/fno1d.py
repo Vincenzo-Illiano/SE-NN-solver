@@ -11,7 +11,7 @@ from ..utils import helper
 # and Hphi (the hamiltonian applied to the wavefunction), as these may be all used in
 # training losses
 class fno1d(nn.Module):
-    def __init__(self, modes, N, hidden, A=1):
+    def __init__(self, modes, N, hidden, A=1, name="fno1d"):
         super().__init__()
 
         # Builds the class
@@ -82,3 +82,19 @@ class fno1d(nn.Module):
         E = self.dt * torch.sum(phi * Hphi, dim=1, keepdim=True)
 
         return E, phi, Hphi
+
+    # Saves the model parameters and information to PATH
+    # in particular, saves:
+    # 'model_state_dict' state dict containing the model parameters
+    # 'modes' number of modes of the model
+    # 'N' number of points that the model can take as input function
+    # 'hidden' list describing the amount of hidden layer parameters
+    # 'dt' discretization step used by this model on the set [-A, A]
+    def saveModel(self, path):
+        torch.save({
+            'model_state_dict': self.state_dict(),
+            'modes': self.modes,
+            'N': self.N,
+            'hidden': self.hidden,
+            'dt': self.dt
+            }, path)

@@ -1,14 +1,21 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import torch.nn.functional as F
 import torch
 from ..utils import physics_helper
 
 # Contains functions used to generate generic datasets, testing and training sets.
 
-# Generates a batch of random torch tensors representing continous functions.
+# 
 # n is the number of points of the function (discretization size).
 def random_smooth(batch_size, n, sigma=8, device="cuda"):
+    """
+    Generates a batch of random torch tensors representing continous functions.
+
+    keyword arguments:
+    batch_size -- number of functions inside a batch
+    n -- number of points inside a single functions
+    sigma -- smoothing radious (default 8)
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    """
 
     # Generates white noise
     x = torch.randn(batch_size, 1, n, device=device)
@@ -37,8 +44,18 @@ def random_smooth(batch_size, n, sigma=8, device="cuda"):
 
     return y
 
-# Generates a batch of M random polynomials of degree with N points using cuda
+# 
 def random_polynomials(M, N, degree=8, device="cuda"):
+    """
+    Generates a batch of M random polynomials of degree with N points.
+
+    keyword arguments:
+    M -- number of functions inside a batch
+    N -- number of points inside a single functions
+    degree -- degree of used polynomials
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    """
+    
     x = torch.linspace(-1, 1, N, device=device)
 
     # (M, degree+1)
@@ -59,8 +76,18 @@ def random_polynomials(M, N, degree=8, device="cuda"):
 
     return f
 
-# Generates a batch of randomly placed and deep gausian wells using cuda
-def random_gaussian_wells( M, N, max_wells=4, well_steep = 2, device="cuda"):
+# 
+def random_gaussian_wells(M, N, max_wells=4, well_steep = 2, device="cuda"):
+    """
+    Generates a batch of randomly placed and deep gausian wells.
+
+    keyword arguments:
+    M -- number of functions inside a batch
+    N -- number of points inside a single functions
+    max_wells -- maximum number of wells in a function (default 4)
+    well_steep -- How steep is a well (default 2)
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    """
 
     # Assumes the function is between -1 and 1 (can be stretched)
     x = torch.linspace(-1, 1, N, device=device)
@@ -97,6 +124,17 @@ def random_gaussian_wells( M, N, max_wells=4, well_steep = 2, device="cuda"):
 
 # Generates and saves a dataset
 def generate_set( num_batches, batch_size, N, device="cuda", type="mixed", printprogess=False):
+    """
+    Generates and returns a function dataset.
+
+    keyword arguments:
+    num_batches -- number of batches in the dataset
+    batch_size -- number of functions saved in one batch
+    N -- number of points in one function
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    type -- dataset type. Can be "mixed", "poly", "well" or "smooth" (default mixed)
+    printprogress -- whether to print the progress of the generation (default False)
+    """
 
     # Generates an empy dataset
     dataset = torch.empty(
@@ -154,10 +192,24 @@ def generate_set( num_batches, batch_size, N, device="cuda", type="mixed", print
 
     return dataset
 
-# Generates and saves a dataset of functions for training. This is a tensor of
-# shape (num_batches, batch_size, N)
-# Types of datasets can be: "mixed", "smooth", "well", "poly"
 def generate_training_set( filename, num_batches, batch_size, N, device="cuda", type="mixed", printprogress=False):
+    """
+    Generates and saves a dataset of random functions for training. 
+    The result will be a dictionare containing:
+    'function': the functions dataset
+    'batch_size': batch_size,
+    'N': N,
+    'type': type
+
+    keyword arguments:
+    filename -- path of the output file
+    num_batches -- number of batches in the dataset
+    batch_size -- number of functions saved in one batch
+    N -- number of points in one function
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    type -- dataset type. Can be "mixed", "poly", "well" or "smooth" (default mixed)
+    printprogress -- whether to print the progress of the generation (default False)
+    """
 
     # Generates the set
     dataset = generate_set(num_batches, batch_size, N, device=device, type=type, printprogress=printprogress)
@@ -169,11 +221,27 @@ def generate_training_set( filename, num_batches, batch_size, N, device="cuda", 
                 "N": N,
                 "type": type}, filename)
 
-# Generates and saves a dataset of functions with respective energies and solved
-# shrodinger equation. 
-# This will save a dictionary containing the three tensors (potentials, wavefunctions, energies).
-# A is the size of the interval where the equation is solved. Default is [-1, 1].
 def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cuda", type="mixed", printprogress=False):
+    """
+    Generates and saves a dataset of random functions for testing. 
+    The result will be a dictionare containing:
+    'function': the dataset containing the random functions
+    'phi' a dataset containing the wavefunction corresponding to each random function
+    'E' corresponding ground energy of each wavefunction 
+    'batch_size': batch_size,
+    'N': N,
+    'type': type
+
+    keyword arguments:
+    filename -- path of the output file
+    num_batches -- number of batches in the dataset
+    batch_size -- number of functions saved in one batch
+    N -- number of points in one function
+    A -- size of the set where the schrodinger function will be solved (default [-1, 1])
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    type -- dataset type. Can be "mixed", "poly", "well" or "smooth" (default mixed)
+    printprogress -- whether to print the progress of the generation (default False)
+    """
 
     # Generates the functions set
     function_set = generate_set( num_batches, batch_size, N, device=device, type=type, printprogess=printprogress)
@@ -222,11 +290,19 @@ def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cud
         "A": A
     }, filename)
 
-# Generates a dataset containing the n-th energies for the potentials
-# stored in input_filename. A is the size of the set where the schrodinger eq. is solved
-# (default is [-1, 1])
 def generate_energy_set( input_filename, output_filename, A=1, device = "cuda", n = 0, printprogress=False):
+    """
+    Generates a dataset containing the n-th energies for the potentials stored in the input_filename dataset.
+    The result will be a tensor of shape (num_batches, batch_size, 1).
 
+    keyword arguments:
+    input_filename -- path of the input dataset 
+    output_filename -- path of the output dataset
+    A -- size of the set where the schrodinger function will be solved (default [-1, 1])
+    device -- device used to generate the batch. Could be "cuda" or "cpu" (default cuda)
+    n -- which energy level to compute (default 0)
+    printprogress -- whether to print the progress of the generation (default False)
+    """
     # Loads the training dataset
     data = torch.load( input_filename, map_location="cpu")
 
@@ -264,15 +340,10 @@ def generate_energy_set( input_filename, output_filename, A=1, device = "cuda", 
     # Saves the dataset
     torch.save(dataset, output_filename)
 
-# Shuffles all the functions inside a dataaset
-def shuffleDataset(dataset):
-
-    # Imports data from config file
-    NUM_BATCHES = config.NUM_BATCHES
-    BATCH_SIZE = config.BATCH_SIZE
-    N = config.N
-
+def shuffleDataset(dataset, num_batches, batch_size, N):
+    """Shuffles the functions inside a dataset"""
+    
     # Shuffles
     dataset = dataset.reshape(-1, N)
     dataset = dataset[torch.randperm(dataset.size(0))]
-    dataset = dataset.reshape(NUM_BATCHES, BATCH_SIZE, N)
+    dataset = dataset.reshape(num_batches, batch_size, N)

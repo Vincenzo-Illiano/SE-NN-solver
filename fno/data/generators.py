@@ -4,8 +4,6 @@ from ..utils import physics_helper
 
 # Contains functions used to generate generic datasets, testing and training sets.
 
-# 
-# n is the number of points of the function (discretization size).
 def random_smooth(batch_size, n, sigma=8, device="cuda"):
     """
     Generates a batch of random torch tensors representing continous functions.
@@ -44,7 +42,6 @@ def random_smooth(batch_size, n, sigma=8, device="cuda"):
 
     return y
 
-# 
 def random_polynomials(M, N, degree=8, device="cuda"):
     """
     Generates a batch of M random polynomials of degree with N points.
@@ -76,7 +73,6 @@ def random_polynomials(M, N, degree=8, device="cuda"):
 
     return f
 
-# 
 def random_gaussian_wells(M, N, max_wells=4, well_steep = 2, device="cuda"):
     """
     Generates a batch of randomly placed and deep gausian wells.
@@ -122,7 +118,6 @@ def random_gaussian_wells(M, N, max_wells=4, well_steep = 2, device="cuda"):
 
     return V
 
-# Generates and saves a dataset
 def generate_set( num_batches, batch_size, N, device="cuda", type="mixed", printprogess=False):
     """
     Generates and returns a function dataset.
@@ -342,7 +337,7 @@ def generate_energy_set( input_filename, output_filename, A=1, device = "cuda", 
 
 def shuffleDataset(dataset, num_batches, batch_size, N):
     """Shuffles the functions inside a dataset"""
-    
+
     # Shuffles
     dataset = dataset.reshape(-1, N)
     dataset = dataset[torch.randperm(dataset.size(0))]

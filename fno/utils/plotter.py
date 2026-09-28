@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-# plots the function at position (num_batch, num_fun) in a dataset
 def view_dataset(input_filename, index, A=1):
+    """ plots the function at position (num_batch, num_fun) in a dataset"""
 
     # Loads the training dataset
     data = torch.load( input_filename, map_location="cpu")

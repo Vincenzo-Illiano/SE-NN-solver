@@ -1,17 +1,27 @@
 import torch
 import torch.nn as nn
-from ..utils import helper
+from ..utils import physics_helper
 
-# Class defining the 1d fourier operator. 
-# This requires a integer number of modes (number of frequencies on which the
-# network is going to decompose the input), N (number of points of the input),
-# A (size of the input set, by default A = 1, meaning the set will be [-1, 1]) and
-# hidden (list of integers defining the size of the hidden layers).
-# When running forward(), the model will return E (energy), phi (the wavefunction),
-# and Hphi (the hamiltonian applied to the wavefunction), as these may be all used in
-# training losses
 class fno1d(nn.Module):
+    """
+    Class defining the 1d fourier operator. 
+
+    Attributes:
+    modes -- number of frequencies on which the network is going to decompose the input
+    N -- number of points of the input functions
+    hidden -- list of integers defining the size of the hidden layers
+    dt -- discretization step of the set on which the shrodinger eq. is solved
+    name -- name of the model
+
+    Methods:
+    forward(x) -- given an input batch of functions x, returns energies, wavefunctions, and 
+        the wavefunctions hamiltonians (adimensional)
+    
+    save(path) -- Saves the model parameters and information to PATH
+    """
     def __init__(self, modes, N, hidden, A=1, name="fno1d"):
+        """Constructs the fno1d class"""
+
         super().__init__()
 
         # Builds the class
@@ -19,6 +29,7 @@ class fno1d(nn.Module):
         self.N = N
         self.dt = 2*A / ( N - 1)
         self.hidden = hidden
+        self.name = name
 
         # Builds the network from the config file
         sizes = (
@@ -45,6 +56,12 @@ class fno1d(nn.Module):
 
     # Forward function of the network
     def forward(self, x):
+        """
+        Forward function of the network.
+        x should be a batch of functions like (batch_size, n), where n is the number of points of the functions.
+
+        Returns the energy, wavefuntion and wavefunction's hamiltonian (adimensional)
+        """
 
         # Real FFT of input
         F = torch.fft.rfft(x)
@@ -78,19 +95,22 @@ class fno1d(nn.Module):
         phi = phi / integral
 
         # Calculates E based on phi using E = <phi|H|phi>
-        Hphi = helper.hamiltonian(phi, x, self.dt)
+        Hphi = physics_helper.hamiltonian(phi, x, self.dt)
         E = self.dt * torch.sum(phi * Hphi, dim=1, keepdim=True)
 
         return E, phi, Hphi
 
-    # Saves the model parameters and information to PATH
-    # in particular, saves:
-    # 'model_state_dict' state dict containing the model parameters
-    # 'modes' number of modes of the model
-    # 'N' number of points that the model can take as input function
-    # 'hidden' list describing the amount of hidden layer parameters
-    # 'dt' discretization step used by this model on the set [-A, A]
     def saveModel(self, path):
+        """
+        Saves the model parameters and information to PATH
+        in particular, saves:
+        'model_state_dict' state dict containing the model parameters
+        'modes' number of modes of the model
+        'N' number of points that the model can take as input function
+        'hidden' list describing the amount of hidden layer parameters
+        'dt' discretization step used by this model on the set [-A, A]
+        
+        """
         torch.save({
             'model_state_dict': self.state_dict(),
             'modes': self.modes,

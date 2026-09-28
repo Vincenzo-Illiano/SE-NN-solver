@@ -1,8 +1,9 @@
 import torch.nn.functional as F
 import torch
 
-# Does the second derivative of a batch of functions 
 def second_derivative(f, dt):
+    """Returns the second derivative of a batch of functions"""
+
     # f: (batch_size, N)
 
     kernel = torch.tensor([1., -2., 1.],
@@ -23,9 +24,8 @@ def second_derivative(f, dt):
 
     return out
 
-# Applies the hamiltonian operator to a batch of functions
-# Note that this is whithout constant, so the whole thing is adimensional
 def hamiltonian(f, V, dt):
+    """Applies the \(adimensional\) hamiltonian operator to a batch of functions"""
     return V*f - second_derivative(f, dt) 
 
 def solve_schrodinger(V, dt, n):

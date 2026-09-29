@@ -25,6 +25,11 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
     # Gets information about the training set
     trainset = trainingset['function']
     num_batches = trainingset['num_batches']
+    N = trainingset['N']
+
+    # Makes sure that the functions that the model takes have the same size as the ones in the dataset
+    if(N != model.N):
+        raise ValueError(f"Model expects function size {model.N}, but trainingset has function size {N}")
 
     # Makes sure to be in training mode
     model.train()
@@ -52,7 +57,7 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
             running_loss += l.item()
 
             # Bacward press
-            loss.backward()
+            l.backward()
             optimizer.step()
 
             # Prints current progress

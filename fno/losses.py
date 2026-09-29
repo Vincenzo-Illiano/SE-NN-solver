@@ -1,6 +1,6 @@
 import torch
 
-def minimumE_loss(E):
+def minimumE_loss(E, phi, Hphi):
     """Loss function that minimizes the energy (minimum energy loss)"""
 
     return torch.mean(E)

@@ -1,8 +1,4 @@
 import torch
-import network.network as network
-import matplotlib.pyplot as plt
-from pathlib import Path
-import numpy as np
 
 def testing_loss(m_E, m_phi, E, phi, a=1):
     """

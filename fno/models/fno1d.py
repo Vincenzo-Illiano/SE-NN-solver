@@ -28,6 +28,7 @@ class fno1d(nn.Module):
         self.modes = modes
         self.N = N
         self.dt = 2*A / ( N - 1)
+        self.A = A
         self.hidden = hidden
         self.name = name
 
@@ -126,7 +127,9 @@ class fno1d(nn.Module):
             'modes': self.modes,
             'N': self.N,
             'hidden': self.hidden,
-            'dt': self.dt
+            'dt': self.dt,
+            'A': self.A,
+            'name': self.name
             }, path)
 
     @staticmethod
@@ -188,5 +191,20 @@ class fno1d(nn.Module):
             A=float(args.inputwidth),
             name=args.name
         )
+
+    @classmethod
+    def from_file(cls, path):
+        """
+        Creates an instance of fno1d from a checkpoint file in path
+        """
+
+        # Loads the model file
+        data = torch.load(path)
+
+        # Creates a model with the parameters loaded from the file
+        model = cls(data['N'], data['modes'], data['hidden'], data['A'], data['name'])
+        model.load_state_dict(data['model_state_dict'])
+
+        return model
 
 

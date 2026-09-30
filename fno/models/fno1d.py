@@ -118,3 +118,65 @@ class fno1d(nn.Module):
             'hidden': self.hidden,
             'dt': self.dt
             }, path)
+
+
+    @staticmethod
+    def set_create_arguments(self, parser):
+        """
+        Static function needed in order to be able to create a fno1d using scripts/create_model.py.
+        Given a parser, this will add the necessary arguments in order for the network to be created with
+        inline console arguments. 
+        """
+        parser.add_argument(
+            "-n", "--name",
+            help="Name of the model",
+            type=str,
+            default="fno1d"
+        )
+
+        parser.add_argument(
+            "-N", "--N",
+            help="Number of points in a function that the model takes as an input",
+            type=int,
+            required=True
+        )
+
+        parser.add_argument(
+            "-M", "--modes",
+            help="Number of frequency modes that the model breaks the input into",
+            type=int,
+            required=True
+        )
+
+        parser.add_argument(
+            "-h", "--hidden",
+            help="Number of hidden layers parameters. For example -h 10 20 10 would create a model with 3 hidden layers" \
+            "with respectively 10, 20 and 10 parameters",
+            nargs="+",
+            type=int
+        )
+
+        parser.add_argument(
+            "-A", "--inputwidth",
+            help="The functions that the model takes as an input should be interpreted as functions on the interval (-A, A)." \
+            "By default A=1, so the input functions are defined on the set (-1,1)",
+            type=float,
+            default=-1
+        )
+
+    @classmethod
+    def from_args(cls, args):
+        """
+        Given parser arguments defined in set_create_parsing, creates an instance of the class from these.
+        """
+
+        # returns a fno1d with the arguments specified by the parser arguments
+        return cls(
+            N=args.N,
+            modes=args.modes,
+            hidden = args.hidden,
+            A=args.inputwidth,
+            name=args.name
+        )
+
+

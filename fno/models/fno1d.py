@@ -31,6 +31,17 @@ class fno1d(nn.Module):
         self.hidden = hidden
         self.name = name
 
+        # Checks that the parameters have correct values
+        if not isinstance(modes, int) or modes <= 0:
+            raise ValueError("modes needs to be an integer greater than 0")
+        if not isinstance(N, int) or N <= 0:
+            raise ValueError("N needs to be an integer greater than 0")
+        for n in hidden:
+            if not isinstance(n, int) or n <= 0:
+                raise ValueError("Every element of hidden needs to be an integer greater than 0")
+        if not isinstance(A, float) or A <= 0:
+            raise ValueError("A needs to be a float greater than 0")
+
         # Builds the network from the config file
         sizes = (
             [2*modes]
@@ -119,7 +130,6 @@ class fno1d(nn.Module):
             'dt': self.dt
             }, path)
 
-
     @staticmethod
     def set_create_arguments(self, parser):
         """
@@ -153,7 +163,8 @@ class fno1d(nn.Module):
             help="Number of hidden layers parameters. For example -h 10 20 10 would create a model with 3 hidden layers" \
             "with respectively 10, 20 and 10 parameters",
             nargs="+",
-            type=int
+            type=int,
+            required=True
         )
 
         parser.add_argument(

@@ -65,7 +65,6 @@ class fno1d(nn.Module):
         mask[-1]=0
         self.register_buffer("boundary_mask", mask)
 
-    # Forward function of the network
     def forward(self, x):
         """
         Forward function of the network.
@@ -131,7 +130,7 @@ class fno1d(nn.Module):
             }, path)
 
     @staticmethod
-    def set_create_arguments(self, parser):
+    def set_create_arguments(parser):
         """
         Static function needed in order to be able to create a fno1d using scripts/create_model.py.
         Given a parser, this will add the necessary arguments in order for the network to be created with
@@ -159,7 +158,7 @@ class fno1d(nn.Module):
         )
 
         parser.add_argument(
-            "-h", "--hidden",
+            "--hidden",
             help="Number of hidden layers parameters. For example -h 10 20 10 would create a model with 3 hidden layers" \
             "with respectively 10, 20 and 10 parameters",
             nargs="+",
@@ -172,7 +171,7 @@ class fno1d(nn.Module):
             help="The functions that the model takes as an input should be interpreted as functions on the interval (-A, A)." \
             "By default A=1, so the input functions are defined on the set (-1,1)",
             type=float,
-            default=-1
+            default=1
         )
 
     @classmethod
@@ -186,7 +185,7 @@ class fno1d(nn.Module):
             N=args.N,
             modes=args.modes,
             hidden = args.hidden,
-            A=args.inputwidth,
+            A=float(args.inputwidth),
             name=args.name
         )
 

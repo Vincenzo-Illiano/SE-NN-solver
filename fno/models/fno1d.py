@@ -185,8 +185,8 @@ class fno1d(nn.Module):
 
         # returns a fno1d with the arguments specified by the parser arguments
         return cls(
-            N=args.N,
             modes=args.modes,
+            N=args.N,
             hidden = args.hidden,
             A=float(args.inputwidth),
             name=args.name
@@ -202,7 +202,7 @@ class fno1d(nn.Module):
         data = torch.load(path)
 
         # Creates a model with the parameters loaded from the file
-        model = cls(data['N'], data['modes'], data['hidden'], data['A'], data['name'])
+        model = cls(data['modes'],data['N'], data['hidden'], data['A'], data['name'])
         model.load_state_dict(data['model_state_dict'])
 
         return model

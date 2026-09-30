@@ -1,4 +1,4 @@
-from data import generators
+from fno.datasets import generators
 
 def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", printprogress = False, shuffledataset = False):
     """

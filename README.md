@@ -31,7 +31,7 @@ In the example we use a small CPU run to verify the workflow.
 python -m scripts.create_dataset -t -T --num-batches 4 --batch-size 8 -N 128 -A 1
 ```
 
-With no explicit paths, `-t` writes to `data/trainingset.pt` and `-T` writes to `data/testingset.pt`. Specify custom paths after either flag. Use `--settype` to choose `mixed`, `poly`, `smooth`, or `well`. Add `--gpu` to use CUDA when available or `--overwrite` to replace existing datasets. 
+With no explicit paths, `-t` writes to `data/training/trainingset.pt` and `-T` writes to `data/testing/testingset.pt`. Specify custom paths after either flag. Use `--settype` to choose `mixed`, `poly`, `smooth`, or `well`. Add `--gpu` to use CUDA when available or `--overwrite` to replace existing datasets. 
 
 Training files store the generated potentials. The model's `A` defines their spatial coordinates during training, meaning that the potentials represent functions defined in the interval $[-A, A]$. The same applies to testing files. These, in addition to training files, also store the solution of the Schrödinger eq. generated using finite differences (for this reason they take a bit longer to generate).
 
@@ -54,7 +54,7 @@ Using --help will provide additional information.
 
 ```bash
 python -m scripts.train -m fno1d -p data/models/initial.pth \
-    -t data/trainingset.pt -s data/models/trained.pth \
+    -t data/training/trainingset.pt -s data/models/trained.pth \
     -e 5 -l minimumE_loss -d cpu --shuffleset
 ```
 
@@ -67,7 +67,7 @@ Using --help will provide additional information.
 ### 4. Evaluate
 
 ```bash
-python -m scripts.test -p data/models/trained.pth -T data/testingset.pt -d cpu
+python -m scripts.test -p data/models/trained.pth -T data/testing/testingset.pt -d cpu
 ```
 
 The script prints the mean test loss over all batches. The loss is the wavefunction MSE after choosing the overall sign that best aligns each reference with its prediction (since wavefunctions with different sign are equivalent), plus the energy MSE multiplied by `--energy-weight` (default 1, use 0 if you don't care whether your model actually finds the groundstate). Testing uses CUDA when available and otherwise runs on the CPU. 

@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 from ..utils import physics_helper
@@ -10,40 +12,40 @@ class fno1d(nn.Module):
     modes -- number of frequencies on which the network is going to decompose the input
     N -- number of points of the input functions
     hidden -- list of integers defining the size of the hidden layers
-    dt -- discretization step of the set on which the shrodinger eq. is solved
+    dt -- grid spacing on [-A, A]
+    A -- half-width of the spatial interval
     name -- name of the model
 
     Methods:
     forward(x) -- given an input batch of functions x, returns energies, wavefunctions, and 
         the wavefunctions hamiltonians (adimensional)
     
-    save(path) -- Saves the model parameters and information to PATH
+    saveModel(path) -- Saves the model parameters and information to PATH
     """
-    def __init__(self, modes, N, hidden, A=1, name="fno1d"):
+    def __init__(self, modes, N, hidden, A=1.0, name="fno1d"):
         """Constructs the fno1d class"""
 
         super().__init__()
 
-        # Builds the class
+        # Check the grid and FFT dimensions before using them.
+        if not isinstance(N, int) or N < 4:
+            raise ValueError("N must be an integer of at least 4.")
+        if not isinstance(modes, int) or not 1 <= modes <= N // 2 + 1:
+            raise ValueError("modes must be between 1 and N // 2 + 1.")
+        if not math.isfinite(A) or A <= 0:
+            raise ValueError("A must be finite and positive.")
+        for n in hidden:
+            if not isinstance(n, int) or n <= 0:
+                raise ValueError("Every hidden layer must have a positive integer size.")
+
         self.modes = modes
         self.N = N
-        self.dt = 2*A / ( N - 1)
-        self.A = A
+        self.A = float(A)
+        self.dt = 2 * self.A / (N - 1)
         self.hidden = hidden
         self.name = name
 
-        # Checks that the parameters have correct values
-        if not isinstance(modes, int) or modes <= 0:
-            raise ValueError("modes needs to be an integer greater than 0")
-        if not isinstance(N, int) or N <= 0:
-            raise ValueError("N needs to be an integer greater than 0")
-        for n in hidden:
-            if not isinstance(n, int) or n <= 0:
-                raise ValueError("Every element of hidden needs to be an integer greater than 0")
-        if not isinstance(A, float) or A <= 0:
-            raise ValueError("A needs to be a float greater than 0")
-
-        # Builds the network from the config file
+        # Build the network from the layer sizes.
         sizes = (
             [2*modes]
             + hidden
@@ -71,7 +73,7 @@ class fno1d(nn.Module):
         Forward function of the network.
         x should be a batch of functions like (batch_size, n), where n is the number of points of the functions.
 
-        Returns the energy, wavefuntion and wavefunction's hamiltonian (adimensional)
+        Returns the dimensionless energy, wavefunction and Hamiltonian applied to it.
         """
 
         # Real FFT of input
@@ -162,8 +164,7 @@ class fno1d(nn.Module):
 
         parser.add_argument(
             "--hidden",
-            help="Number of hidden layers parameters. For example -h 10 20 10 would create a model with 3 hidden layers" \
-            "with respectively 10, 20 and 10 parameters",
+            help="Widths of the hidden layers, for example --hidden 10 20 10.",
             nargs="+",
             type=int,
             required=True
@@ -180,7 +181,7 @@ class fno1d(nn.Module):
     @classmethod
     def from_args(cls, args):
         """
-        Given parser arguments defined in set_create_parsing, creates an instance of the class from these.
+        Given parser arguments defined in set_create_arguments, creates an instance of the class from these.
         """
 
         # returns a fno1d with the arguments specified by the parser arguments
@@ -193,18 +194,37 @@ class fno1d(nn.Module):
         )
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, legacy_A=None):
         """
-        Creates an instance of fno1d from a checkpoint file in path
+        Load a checkpoint onto the CPU.
+
+        Older checkpoints store only the weights and boundary mask. The grid
+        size and layer widths can be recovered from these tensors, but the
+        original interval half-width must be supplied as legacy_A.
         """
+        data = torch.load(path, map_location="cpu", weights_only=True)
 
-        # Loads the model file
-        data = torch.load(path)
+        if not isinstance(data, dict):
+            raise ValueError("Expected an fno1d checkpoint or a bare state dict.")
 
-        # Creates a model with the parameters loaded from the file
-        model = cls(data['modes'],data['N'], data['hidden'], data['A'], data['name'])
-        model.load_state_dict(data['model_state_dict'])
+        if "model_state_dict" in data:
+            model = cls(data["modes"], data["N"], data["hidden"], data["A"], data["name"])
+            model.load_state_dict(data["model_state_dict"])
+            return model
 
+        if legacy_A is None:
+            raise ValueError("A bare state dict needs the original interval half-width (--legacy-width).")
+
+        # Linear layer weights have shape (output size, input size).
+        weight_keys = sorted(
+            (key for key in data if key.startswith("net.") and key.endswith(".weight")),
+            key=lambda key: int(key.split(".")[1]),
+        )
+        if not weight_keys or "boundary_mask" not in data:
+            raise ValueError("The bare state dict is missing fno1d weights or the boundary mask.")
+
+        modes = data[weight_keys[0]].shape[1] // 2
+        hidden = [data[key].shape[0] for key in weight_keys[:-1]]
+        model = cls(modes, data["boundary_mask"].numel(), hidden, A=legacy_A)
+        model.load_state_dict(data)
         return model
-
-

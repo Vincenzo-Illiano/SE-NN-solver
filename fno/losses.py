@@ -6,6 +6,7 @@ def minimumE_loss(E, phi, Hphi):
     return torch.mean(E)
 
 def minimumErr_loss(E, phi, Hphi):
-    """Loss function that minimizes (Hphi - Ephi)^2 (minimum error loss)"""
+    """Minimize the squared eigenvalue residual on the interior grid points."""
 
-    return torch.mean((Hphi-E*phi)**2)
+    # The endpoints already satisfy the imposed Dirichlet condition.
+    return torch.mean((Hphi[..., 1:-1] - E * phi[..., 1:-1])**2)

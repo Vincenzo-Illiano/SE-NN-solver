@@ -25,117 +25,54 @@ def second_derivative(f, dt):
     return out
 
 def hamiltonian(f, V, dt):
-    """Applies the \(adimensional\) hamiltonian operator to a batch of functions"""
+    """Apply the dimensionless Hamiltonian to a batch of functions."""
     return V*f - second_derivative(f, dt) 
+
+def _dirichlet_hamiltonian(V, dt, n):
+    """Build the finite-difference Hamiltonian on the interior grid points."""
+
+    if V.ndim != 2 or V.shape[1] < 3:
+        raise ValueError("V must have shape (batch_size, N) with N >= 3.")
+
+    # The two endpoints are fixed to zero, so only N - 2 values are unknown.
+    interior = V[:, 1:-1]
+    size = interior.shape[1]
+    if not 0 <= n < size:
+        raise ValueError(f"Energy level n must be between 0 and {size - 1}.")
+
+    inv_dt2 = 1 / dt**2
+    H = torch.diag_embed(2 * inv_dt2 + interior)
+    idx = torch.arange(size - 1, device=V.device)
+    H[:, idx, idx + 1] = -inv_dt2
+    H[:, idx + 1, idx] = -inv_dt2
+    
+    return H
+
 
 def solve_schrodinger(V, dt, n):
     """
-    Solves
+    Solve (-d²/dx² + V) phi = E phi with zero endpoint values.
 
-        (-d²/dx² + V) phi = E phi
-
-    using finite differences.
-
-    Parameters
-    ----------
-    V : torch.Tensor
-        Shape (M, N) representing batch of potentials.
-
-    dt : float
-        Spatial step.
-
-    n : integer
-        Energy level
-
-    Returns
-        E   : (M, 1)
-        phi : (M, N)
+    V has shape (batch_size, N) and includes both endpoints. The grid spacing
+    is dt and n is the zero-based eigenstate index. Returns energy with shape
+    (batch_size, 1) and the normalized wavefunction with shape (batch_size, N).
     """
+    H = _dirichlet_hamiltonian(V, dt, n)
+    energies, states = torch.linalg.eigh(H)
+    E = energies[:, n:n+1]
 
-    device = V.device
-    dtype = V.dtype
+    # The eigensolver uses a Euclidean norm of one. Convert to the grid norm
+    # and restore the two fixed endpoints.
+    phi = F.pad(states[:, :, n] / dt**0.5, (1, 1))
+    return E, phi
 
-    inv_dt2 = 1.0 / (dt * dt)
-
-    # Checks that V has shape (M, N)
-    if V.ndim == 2:
-        M, N = V.shape
-
-        # Creates the batched hamiltonian matrix
-        diag = 2.0 * inv_dt2 + V
-        off = -inv_dt2 * torch.ones(N - 1, device=device, dtype=dtype)
-
-        H = torch.diag_embed(diag)
-
-        idx = torch.arange(N - 1, device=device)
-        H[:, idx, idx + 1] = off
-        H[:, idx + 1, idx] = off
-
-        # Diagonalization
-        E, phi = torch.linalg.eigh(H)
-
-        # Returns the n-th state
-        E = E[:, n:n+1]
-        phi = phi[:, :, n]
-
-        # Normalizes the result
-        norm = torch.sqrt(torch.sum(phi**2, dim=1, keepdim=True) * dt)
-        phi = phi / norm
-
-        return E, phi
-
-    else:
-        raise ValueError("V must have shape (N,) or (M, N)")
 
 def solve_energy(V, dt, n):
     """
-    Computes only the n-th energy eigenvalue of
+    Return the n-th Dirichlet eigenenergy for each potential in V.
 
-        (-d²/dx² + V) phi = E phi
-
-    using finite differences.
-
-    Parameters
-    ----------
-    V : torch.Tensor
-        Shape (M, N), batch of potentials.
-
-    dt : float
-        Spatial step.
-
-    n : int
-        Energy level (0 = ground state).
-
-    Returns
-    -------
-    E : torch.Tensor
-        Shape (M, 1), n-th eigenvalue for each potential.
+    The potential grid includes both endpoints and has spacing dt. The
+    returned tensor has shape (batch_size, 1), and n=0 is the ground state.
     """
-
-    if V.ndim != 2:
-        raise ValueError("V must have shape (M, N)")
-
-    device = V.device
-    dtype = V.dtype
-
-    M, N = V.shape
-
-    inv_dt2 = 1.0 / (dt * dt)
-
-    # Diagonal
-    diag = 2.0 * inv_dt2 + V
-
-    # Build Hamiltonian batch
-    H = torch.diag_embed(diag)
-
-    off = -inv_dt2 * torch.ones(N - 1, device=device, dtype=dtype)
-
-    idx = torch.arange(N - 1, device=device)
-    H[:, idx, idx + 1] = off
-    H[:, idx + 1, idx] = off
-
-    # Only eigenvalues (faster than eigh)
-    E = torch.linalg.eigvalsh(H)
-
-    # n-th eigenvalue
-    return E[:, n:n+1]
+    H = _dirichlet_hamiltonian(V, dt, n)
+    return torch.linalg.eigvalsh(H)[:, n:n+1]

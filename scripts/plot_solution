@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Compare a saved model's prediction with a reference ground state."""
+
+import argparse
+import sys
+from pathlib import Path
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "-T", "--testset", required=True, type=Path,
+        help="Path to the labeled testing dataset.",
+    )
+    parser.add_argument(
+        "-p", "--modelpath", required=True, type=Path,
+        help="Path to the model checkpoint.",
+    )
+    parser.add_argument(
+        "-i", "--index", nargs=2, type=int, metavar=("BATCH", "SAMPLE"), default=(0, 0),
+        help="Zero-based batch and sample indices (default: 0 0).",
+    )
+    parser.add_argument(
+        "--legacy-width", type=float,
+        help="Interval half-width A for a checkpoint saved as a bare state dict.",
+    )
+    args = parser.parse_args()
+
+    # Direct execution puts scripts/ on the import path. Add the project root.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from fno.utils.plotter import plot_model_solution
+
+    try:
+        plot_model_solution(
+            args.modelpath, args.testset, index=tuple(args.index), legacy_A=args.legacy_width,
+        )
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
+
+
+if __name__ == "__main__":
+    main()

@@ -39,6 +39,8 @@ Use the same number of grid points `N` for the model and both datasets, and the 
 
 Using --help will provide additional information.
 
+Note: GPU memory at the moment is not very well managed, especially when generating the testingset. For this reason, cuda might run out of memory when trying to generate too large testing sets.
+
 ### 2. Create a model
 
 ```bash
@@ -73,6 +75,15 @@ python -m scripts.test -p data/models/trained.pth -T data/testing/testingset.pt 
 The script prints the mean test loss over all batches. The loss is the wavefunction MSE after choosing the overall sign that best aligns each reference with its prediction (since wavefunctions with different sign are equivalent), plus the energy MSE multiplied by `--energy-weight` (default 1, use 0 if you don't care whether your model actually finds the groundstate). Testing uses CUDA when available and otherwise runs on the CPU. 
 
 Using --help will provide additional information.
+
+### 5. Plot a prediction
+
+```bash
+python -m pip install matplotlib numpy
+scripts/plot_solution -T data/testingset.pt -p data/models/trained.pth -i 0 0
+```
+
+The plot compares the model and reference ground states for one potential. Use `-i BATCH SAMPLE` to select a zero-based batch and sample. The default is `0 0`.
 
 ## Source layout
 

@@ -1,3 +1,5 @@
+import math
+
 import torch.nn.functional as F
 import torch
 from ..utils import physics_helper
@@ -23,13 +25,15 @@ def random_smooth(batch_size, n, sigma=8, device="cuda"):
     if k % 2 == 0:
         k += 1
 
-    t = torch.arange(k, device=device) - k // 2
+    # Reflection padding must be smaller than the input grid.
+    radius = min(k // 2, n - 1)
+    t = torch.arange(-radius, radius + 1, device=device)
 
     kernel = torch.exp(-0.5 * (t / sigma) ** 2)
     kernel /= kernel.sum()
 
     y = F.conv1d(
-        F.pad(x, (k // 2, k // 2), mode="reflect"),
+        F.pad(x, (radius, radius), mode="reflect"),
         kernel.view(1, 1, -1)
     ).squeeze(1)
 
@@ -148,7 +152,7 @@ def generate_set( num_batches, batch_size, N, device="cuda", type="mixed", print
 
         # Prints current progress
         if(printprogess):
-            print(f"\rGenerating dataset: {b+1}/{num_batches} ({100*b/num_batches:.1f}%)", end="", flush=True)
+            print(f"\rGenerating dataset: {b+1}/{num_batches} ({100*(b+1)/num_batches:.1f}%)", end="", flush=True)
 
         # Creates the dataset for non mixed types
         if(type == "well"):
@@ -185,6 +189,9 @@ def generate_set( num_batches, batch_size, N, device="cuda", type="mixed", print
         # Updates the dataset with the current batch
         dataset[b] = batch.cpu()
 
+    if printprogess:
+        print()
+
     return dataset
 
 def generate_training_set( filename, num_batches, batch_size, N, device="cuda", type="mixed", printprogress=False):
@@ -207,7 +214,7 @@ def generate_training_set( filename, num_batches, batch_size, N, device="cuda", 
     """
 
     # Generates the set
-    dataset = generate_set(num_batches, batch_size, N, device=device, type=type, printprogress=printprogress)
+    dataset = generate_set(num_batches, batch_size, N, device=device, type=type, printprogess=printprogress)
 
     # Saves the set
     torch.save({"function":dataset,
@@ -237,6 +244,9 @@ def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cud
     type -- dataset type. Can be "mixed", "poly", "well" or "smooth" (default mixed)
     printprogress -- whether to print the progress of the generation (default False)
     """
+
+    if not math.isfinite(A) or A <= 0:
+        raise ValueError("A must be finite and positive.")
 
     # Generates the functions set
     function_set = generate_set( num_batches, batch_size, N, device=device, type=type, printprogess=printprogress)
@@ -271,7 +281,10 @@ def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cud
 
         # Prints current progress
         if(printprogress):
-            print(f"\rGenerating testing set: {i+1}/{num_batches} ({100*i/num_batches:.1f}%)", end="", flush=True)
+            print(f"\rGenerating testing set: {i+1}/{num_batches} ({100*(i+1)/num_batches:.1f}%)", end="", flush=True)
+
+    if printprogress:
+        print()
 
     # Saves everything in a dictionary
     torch.save({
@@ -330,15 +343,13 @@ def generate_energy_set( input_filename, output_filename, A=1, device = "cuda", 
 
         # Prints current progress
         if(printprogress):
-            print(f"\rGenerating dataset: {i+1}/{num_batches} ({100*i/num_batches:.1f}%)", end="", flush=True)
+            print(f"\rGenerating dataset: {i+1}/{num_batches} ({100*(i+1)/num_batches:.1f}%)", end="", flush=True)
 
     # Saves the dataset
     torch.save(dataset, output_filename)
 
 def shuffleDataset(dataset, num_batches, batch_size, N):
-    """Shuffles the functions inside a dataset"""
-
-    # Shuffles
-    dataset = dataset.reshape(-1, N)
-    dataset = dataset[torch.randperm(dataset.size(0))]
-    dataset = dataset.reshape(num_batches, batch_size, N)
+    """Return a dataset with potentials shuffled across batches."""
+    potentials = dataset.reshape(-1, N)
+    order = torch.randperm(potentials.size(0), device=potentials.device)
+    return potentials[order].reshape(num_batches, batch_size, N)

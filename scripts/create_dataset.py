@@ -1,82 +1,86 @@
-from network import dataset
-import torch
-from pathlib import Path
 import argparse
+import math
+from pathlib import Path
 
-# Finds the root folder and checkpoint path 
-ROOT = Path(__file__).resolve().parent
+import torch
 
-# Finds default paths
-testing_path = ROOT / "network" / "data" / "testingset.pt"
-training_path = ROOT / "network" / "data" / "trainingset.pt"
+from fno.datasets import generators
 
-# Uses argparse to read arguments
-parser = argparse.ArgumentParser()
+# Finds the data directory
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
-parser.add_argument(
-    "-T", "--testset",
-    nargs="?",
-    const=testing_path,
-    help="Path of the testing set to generate. Default will be /data/testingset.pt.",
-    default=None,
-    type=str,
-)
+def main():
 
-parser.add_argument(
-    "-t", "--trainset",
-    nargs="?",
-    const=training_path,
-    help="Path of the training set to generate. Default will be /data/trainingset.pt.",
-    default=None,
-    type=str,
-)
+    """Generate training potentials and/or a labeled testing set."""
 
-parser.add_argument(
-    "-o", "--overwrite",
-    action="store_true",
-    help="Overwrites existing files"
-)
+    parser = argparse.ArgumentParser(description=main.__doc__)
+
+    # All the arguments needed for the dataset creation
+    parser.add_argument(
+        "-t", "--trainset", nargs="?", type=Path,
+        const=DATA_DIR / "trainingset.pt",
+        help="Training dataset path (default with -t: data/trainingset.pt).",
+    )
+    parser.add_argument(
+        "-T", "--testset", nargs="?", type=Path,
+        const=DATA_DIR / "testingset.pt",
+        help="Testing dataset path (default with -T: data/testingset.pt).",
+    )
+    parser.add_argument("--num-batches", type=int, required=True)
+    parser.add_argument("--batch-size", type=int, required=True)
+    parser.add_argument("-N", type=int, required=True, help="Number of grid points.")
+    parser.add_argument(
+        "-A", type=float, default=1.0,
+        help="Half-width of the testing interval [-A, A] (default: 1).",
+    )
+    parser.add_argument(
+        "-s", "--settype", choices=["mixed", "poly", "smooth", "well"],
+        default="mixed", help="Family of random potentials (default: mixed).",
+    )
+    parser.add_argument("-g", "--gpu", action="store_true", help="Use CUDA if available.")
+    parser.add_argument("-o", "--overwrite", action="store_true", help="Replace existing files.")
+    args = parser.parse_args()
+
+    # Checks that provided arguments work
+    if args.trainset is None and args.testset is None:
+        parser.error("Specify -t, -T, or both.")
+    if args.num_batches < 1 or args.batch_size < 1 or args.N < 4:
+        parser.error("Batch counts and sizes must be positive, and N must be at least 4.")
+    if args.testset is not None and (not math.isfinite(args.A) or args.A <= 0):
+        parser.error("A must be finite and positive.")
+    if args.testset is not None and args.trainset is not None:
+        if args.testset.resolve() == args.trainset.resolve():
+            parser.error("Training and testing datasets need different output paths.")
+
+    for path in (args.trainset, args.testset):
+        if path is not None and path.exists() and not args.overwrite:
+            parser.error(f"{path} already exists. Use -o to overwrite it.")
+
+    # Loads device (either cuda or cpu)
+    device = "cuda" if args.gpu and torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
+
+    # Both datasets use the same grid size and potential family, so options works for both
+    options = {
+        "num_batches": args.num_batches,
+        "batch_size": args.batch_size,
+        "N": args.N,
+        "device": device,
+        "type": args.settype,
+    }
+
+    # generates trainingset
+    if args.trainset is not None:
+        args.trainset.parent.mkdir(parents=True, exist_ok=True)
+        generators.generate_training_set(args.trainset, **options)
+        print(f"Saved training set to {args.trainset}")
+
+    # Generates testingset
+    if args.testset is not None:
+        args.testset.parent.mkdir(parents=True, exist_ok=True)
+        generators.generate_testing_set(args.testset, A=args.A, **options)
+        print(f"Saved testing set to {args.testset}")
 
 
-parser.add_argument(
-    "-g", "--gpu",
-    action="store_true",
-    help="Use dedicated gpu if available"
-)
-
-parser.add_argument(
-    "-s", "--settype",
-    type=str,
-    default="mixed",
-    help="Type of dataset to create. Can be \"mixed\", \"poly\", \"smooth\" and \"well\""
-)
-
-args = parser.parse_args()
-
-# Checks if the train / test sets will be generated 
-istrain = args.trainset is not None
-training_path = args.trainset if istrain else training_path
-istest = args.testset is not None
-testing_path = args.testset if istest else testing_path
-
-# Checks if the files already exist
-if(args.overwrite == False and Path(testing_path).exists() == True and istest):
-    parser.error(f"file {testing_path} already exists. Use the -o flag to overwrite it")
-if(args.overwrite == False and Path(training_path).exists() == True and istrain):
-    parser.error(f"file {training_path} already exists. Use the -o flag to overwrite it")
-
-if(istrain == False and istest == False):
-    print("There is nothing to do")
-    exit()
-
-# Uses the GPU if available
-device = torch.device("cuda" if (torch.cuda.is_available() and args.gpu) else "cpu")
-print("Using device: " + str(device))
-
-# Generates the training set
-if(istrain):
-    dataset.generate_training_set(training_path, device, args.settype)
- 
-# Generates the testing set
-if(istest):
-    dataset.generate_testing_set(testing_path, device, args.settype)
+if __name__ == "__main__":
+    main()

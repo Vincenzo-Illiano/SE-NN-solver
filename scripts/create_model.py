@@ -1,35 +1,34 @@
 import argparse
-from fno.models import *
+from pathlib import Path
 
-# Available model types
-MODEL_TYPES = ["fno1d"]
+from fno.models.fno1d import fno1d
 
-# Uses argparse to read arguments
-parser = argparse.ArgumentParser()
+def main():
+    """Create and save an initialized model."""
 
-parser.add_argument(
-    "-m", "--model",
-    help=f"Model type that you wish to create. Options are {MODEL_TYPES}",
-    type=str,
-    required=True
-)
+    parser = argparse.ArgumentParser(description=main.__doc__)
 
-parser.add_argument(
-    "-p", "--path",
-    help=f"Path where the model should be saved and filename",
-    type=str,
-    required=True
-)
+    parser.add_argument(
+        "-m", "--model", choices=["fno1d"], required=True,
+        help="Type of model to create.",
+    )
 
-# Based on the chosen model type, adds the other required arguments to create it
-args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "-p", "--path", type=Path, required=True,
+        help="Path where the model checkpoint will be saved.",
+    )
 
-if args.model == "fno1d":
-    fno1d.set_create_arguments(parser=parser)
+    # The branch currently supports one model type.
+    fno1d.set_create_arguments(parser)
+    args = parser.parse_args()
 
-# Parses the rest of the required arguments
-args = parser.parse_args()
+    try:
+        model = fno1d.from_args(args)
+    except ValueError as error:
+        parser.error(str(error))
 
-if args.model == "fno1d":
-    model = fno1d.from_args(args)
+    args.path.parent.mkdir(parents=True, exist_ok=True)
     model.saveModel(args.path)
+
+if __name__ == "__main__":
+    main()

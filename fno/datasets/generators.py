@@ -194,7 +194,7 @@ def generate_set( num_batches, batch_size, N, device="cuda", type="mixed", print
 
     return dataset
 
-def generate_training_set( filename, num_batches, batch_size, N, device="cuda", type="mixed", printprogress=False):
+def generate_training_set( filename, num_batches, batch_size, N, device="cuda", type="mixed", printprogress=True):
     """
     Generates and saves a dataset of random functions for training. 
     The result will be a dictionare containing:
@@ -223,7 +223,7 @@ def generate_training_set( filename, num_batches, batch_size, N, device="cuda", 
                 "N": N,
                 "type": type}, filename)
 
-def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cuda", type="mixed", printprogress=False):
+def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cuda", type="mixed", printprogress=True):
     """
     Generates and saves a dataset of random functions for testing. 
     The result will be a dictionare containing:
@@ -298,7 +298,7 @@ def generate_testing_set( filename, num_batches, batch_size, N, A=1, device="cud
         "A": A
     }, filename)
 
-def generate_energy_set( input_filename, output_filename, A=1, device = "cuda", n = 0, printprogress=False):
+def generate_energy_set( input_filename, output_filename, A=1, device = "cuda", n = 0, printprogress=True):
     """
     Generates a dataset containing the n-th energies for the potentials stored in the input_filename dataset.
     The result will be a tensor of shape (num_batches, batch_size, 1).

@@ -28,7 +28,7 @@ In the example we use a small CPU run to verify the workflow.
 ### 1. Generate separate training and testing sets
 
 ```bash
-python -m scripts.create_dataset -t -T --num-batches 4 --batch-size 8 -N 128 -A 1
+python -m scripts.create_dataset -t -T --num-batches 4 --batch-size 8 -N 128 -A 30
 ```
 
 With no explicit paths, `-t` writes to `data/training/trainingset.pt` and `-T` writes to `data/testing/testingset.pt`. Specify custom paths after either flag. Use `--settype` to choose `mixed`, `poly`, `smooth`, or `well`. Add `--gpu` to use CUDA when available or `--overwrite` to replace existing datasets. 
@@ -45,7 +45,7 @@ Note: GPU memory at the moment is not very well managed, especially when generat
 
 ```bash
 python -m scripts.create_model -m fno1d -p data/models/initial.pth \
-    -N 128 -M 32 --hidden 128 128 -A 1
+    -N 128 -M 32 --hidden 128 128 -A 30
 ```
 
 `-M` selects how many real FFT bins to retain, including the zero-frequency bin (so `-M 32` will use the first 32 modes). It must be between 1 and `N // 2 + 1`. The values after `--hidden` set the widths of the hidden layers.
@@ -80,7 +80,7 @@ Using --help will provide additional information.
 
 ```bash
 python -m pip install matplotlib numpy
-scripts/plot_solution -T data/testingset.pt -p data/models/trained.pth -i 0 0
+scripts/plot_solution -T data/testing/testingset.pt -p data/models/trained.pth -i 0 0
 ```
 
 The plot compares the model and reference ground states for one potential. Use `-i BATCH SAMPLE` to select a zero-based batch and sample. The default is `0 0`.

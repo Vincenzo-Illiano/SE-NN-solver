@@ -18,13 +18,13 @@ def main():
     # All the arguments needed for the dataset creation
     parser.add_argument(
         "-t", "--trainset", nargs="?", type=Path,
-        const=DATA_DIR / "trainingset.pt",
-        help="Training dataset path (default with -t: data/trainingset.pt).",
+        const=DATA_DIR / "training/trainingset.pt",
+        help="Training dataset path (default with -t: data/training/trainingset.pt).",
     )
     parser.add_argument(
         "-T", "--testset", nargs="?", type=Path,
-        const=DATA_DIR / "testingset.pt",
-        help="Testing dataset path (default with -T: data/testingset.pt).",
+        const=DATA_DIR / "testing/testingset.pt",
+        help="Testing dataset path (default with -T: data/testing/testingset.pt).",
     )
     parser.add_argument("--num-batches", type=int, required=True)
     parser.add_argument("--batch-size", type=int, required=True)
@@ -39,6 +39,10 @@ def main():
     )
     parser.add_argument("-g", "--gpu", action="store_true", help="Use CUDA if available.")
     parser.add_argument("-o", "--overwrite", action="store_true", help="Replace existing files.")
+    parser.add_argument(
+        "--noProgress", action="store_true",
+        help="Suppress the progress counter.",
+    )
     args = parser.parse_args()
 
     # Checks that provided arguments work
@@ -67,6 +71,7 @@ def main():
         "N": args.N,
         "device": device,
         "type": args.settype,
+        "printprogress": not args.noProgress
     }
 
     # generates trainingset

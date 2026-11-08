@@ -1,3 +1,5 @@
+import torch
+
 from fno.datasets import generators
 
 def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", printprogress = False, shuffledataset = False):
@@ -6,7 +8,7 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
     
     Arguments:
     model -- model to train
-    trainingset -- training set 
+    trainingset -- training dataset dictionary or tensor (legagcy)
     optimizer -- optimizer used in the training
     epochs -- number of epochs to be used in the training
     loss -- loss function needed. This must be a function like loss(E, phi, Hphi), where phi and Hphi are
@@ -22,10 +24,13 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
     # Losses for each epoch
     train_losses = []
 
-    # Gets information about the training set
-    trainset = trainingset['function']
-    num_batches = trainingset['num_batches']
-    N = trainingset['N']
+    # Older training sets stored the tensor directly.
+    trainset = trainingset.get("function") if isinstance(trainingset, dict) else trainingset
+    if not torch.is_tensor(trainset) or trainset.ndim != 3:
+        raise ValueError("The training set must contain a tensor of shape (num_batches, batch_size, N).")
+    num_batches, batch_size, N = trainset.shape
+    if num_batches < 1 or batch_size < 1:
+        raise ValueError("The training set must contain at least one sample.")
 
     # Makes sure that the functions that the model takes have the same size as the ones in the dataset
     if(N != model.N):
@@ -39,7 +44,7 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
 
         # Shuffles the dataset
         if(shuffledataset):
-            generators.shuffleDataset(trainset)
+            trainset = generators.shuffleDataset(trainset, num_batches, batch_size, N)
 
         running_loss = 0
 
@@ -49,14 +54,14 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
             # Moves the batches to the used device
             batch = batch.to(device, non_blocking=True)
 
-            # Forward press
+            # Forward pass
             E, phi, Hphi = model(batch)
 
             # Calculates the loss
             l = loss(E, phi, Hphi)
             running_loss += l.item()
 
-            # Bacward press
+            # Backward pass
             l.backward()
             optimizer.step()
 
@@ -71,8 +76,10 @@ def trainFno1d(model, trainingset, optimizer, epochs, loss, device="cuda", print
                 )
 
         # Appends the average running loss at the end of the running_losses list
-        else:
-            train_losses.append(running_loss/num_batches)
+        train_losses.append(running_loss/num_batches)
+
+    if printprogress:
+        print()
 
     return model, train_losses
 

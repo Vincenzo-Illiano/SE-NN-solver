@@ -45,9 +45,8 @@ def _dirichlet_hamiltonian(V, dt, n):
     idx = torch.arange(size - 1, device=V.device)
     H[:, idx, idx + 1] = -inv_dt2
     H[:, idx + 1, idx] = -inv_dt2
-    
-    return H
 
+    return H
 
 def solve_schrodinger(V, dt, n):
     """
@@ -57,6 +56,7 @@ def solve_schrodinger(V, dt, n):
     is dt and n is the zero-based eigenstate index. Returns energy with shape
     (batch_size, 1) and the normalized wavefunction with shape (batch_size, N).
     """
+
     H = _dirichlet_hamiltonian(V, dt, n)
     energies, states = torch.linalg.eigh(H)
     E = energies[:, n:n+1]
@@ -64,8 +64,8 @@ def solve_schrodinger(V, dt, n):
     # The eigensolver uses a Euclidean norm of one. Convert to the grid norm
     # and restore the two fixed endpoints.
     phi = F.pad(states[:, :, n] / dt**0.5, (1, 1))
-    return E, phi
 
+    return E, phi
 
 def solve_energy(V, dt, n):
     """
